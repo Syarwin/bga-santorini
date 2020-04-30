@@ -12,7 +12,7 @@ define('LEFT_MIDDLE', 6);
 define('CONTAINS_ALL', 1);
 define('CONTAINS_ANY', 2);
 
-class santorinoSpace extends APP_GameClass
+class santorinitisaacSpace extends APP_GameClass
 {
     public $id;
     public $x;
@@ -72,7 +72,7 @@ class santorinoSpace extends APP_GameClass
     }
 }
 
-class santorinoBoard extends APP_GameClass implements JsonSerializable
+class santorinitisaacBoard extends APP_GameClass implements JsonSerializable
 {
     private $board = array();
     private $top = array();

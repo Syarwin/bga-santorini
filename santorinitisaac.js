@@ -1,21 +1,21 @@
 /**
 	*------
 	* BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-	* santorino implementation : (c) Morgalad
+	* santorinitisaac implementation : (c) Morgalad
 	*
 	* This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 	* See http://en.boardgamearena.com/#!doc/Studio for more information.
 	* -----
 	*
-	* santorino.js
+	* santorinitisaac.js
 	*
-	* santorino user interface script
+	* santorinitisaac user interface script
 	*
 	* In this file, you are describing the logic of your user interface, in Javascript language.
 	*
 	*/
-//# sourceURL=santorino.js
-//@ sourceURL=santorino.js
+//# sourceURL=santorinitisaac.js
+//@ sourceURL=santorinitisaac.js
 
 
 define([
@@ -33,7 +33,7 @@ define([
 	const ZOOM_MIN = 0.2;
 	const ZOOM_MAX = 2;
 
-	return declare("bgagame.santorino", ebg.core.gamegui, {
+	return declare("bgagame.santorinitisaac", ebg.core.gamegui, {
 
 /*
  * Constructor
@@ -54,7 +54,7 @@ constructor: function() {
  */
 setup: function(gamedatas) {
 	console.info('SETUP', gamedatas);
-	console.info("Santorino");
+	console.info("santorinitisaac");
 	this.handles = [];
 
 	// TODO remove ?
@@ -214,7 +214,7 @@ doAction: function(action, args) {
 		args = args || {};
 		//args.lock = true; TODO remove ?
 
-		this.ajaxcall('/santorino/santorino/' + action + '.html', args, this, function(result) {});
+		this.ajaxcall('/santorinitisaac/santorinitisaac/' + action + '.html', args, this, function(result) {});
 	}
 },
 
@@ -363,7 +363,7 @@ var coords = evt.currentTarget.parentElement.id.split('_');
 x = coords[1];
 y = coords[2];
 z = coords[3];
-this.ajaxcall( "/santorino/santorino/move.html", {
+this.ajaxcall( "/santorinitisaac/santorinitisaac/move.html", {
 worker_id:worker_id,
 x:x,
 y:y,
@@ -387,7 +387,7 @@ var coords = evt.currentTarget.parentElement.id.split('_');
 x = coords[1];
 y = coords[2];
 z = coords[3];
-this.ajaxcall( "/santorino/santorino/place.html", {
+this.ajaxcall( "/santorinitisaac/santorinitisaac/place.html", {
 x:x,
 y:y,
 z:z
@@ -414,7 +414,7 @@ var coords = evt.currentTarget.parentElement.id.split('_');
 x = coords[1];
 y = coords[2];
 z = coords[3];
-this.ajaxcall( "/santorino/santorino/build.html", {
+this.ajaxcall( "/santorinitisaac/santorinitisaac/build.html", {
 x:x,
 y:y,
 z:z
@@ -433,7 +433,7 @@ setupNotifications:
 In this method, you associate each of your game notifications with your local method to handle it.
 
 Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
-your santorino.game.php file.
+your santorinitisaac.game.php file.
 
 */
 setupNotifications: function() {

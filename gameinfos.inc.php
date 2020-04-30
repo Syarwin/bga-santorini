@@ -87,7 +87,7 @@ $gameinfos = array(
 'diplomacy' => 0,
 
 // Colors attributed to players
-'player_colors' => array( "ff0000", "ffffff" ),
+'player_colors' => array( "0000ff", "ffffff" ),
 
 // Favorite colors support : if set to "true", support attribution of favorite colors based on player's preferences (see reattributeColorsBasedOnPreferences PHP method)
 'favorite_colors_support' => true,
@@ -109,7 +109,7 @@ $gameinfos = array(
     'max' => null
 ),
 
-'enable_3d' => false, 
+'enable_3d' => true, 
 
 // Games categories
 //  You can attribute a maximum of FIVE "tags" for your game.
