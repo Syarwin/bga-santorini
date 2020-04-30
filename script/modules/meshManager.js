@@ -1,6 +1,8 @@
 import * as THREE 				from './three.js';
 import { OBJLoader } 			from './OBJLoader.js';
 
+const URL = "https://en.1.studio.boardgamearena.com:8083/data/themereleases/current/games/santorinitisaac/999999-9999/";
+
 const Meshes = [
 /* Board Components */
 	{
@@ -96,7 +98,7 @@ MeshManager.prototype.loadGeometry = function(names, scales){
 
 	return new Promise(function(resolve, reject){
 		// Create a promise with all loading requests
-		Promise.all(names.map( (n) => loader.load('./geometries/' + n + '.obj') ))
+		Promise.all(names.map( (n) => loader.load(URL + './geometries/' + n + '.obj') ))
 		.then( (values) => {
 			// Store them (assuming only one mesh inside the obj file
 			for(var i = 0; i < names.length; i++){
@@ -125,7 +127,7 @@ MeshManager.prototype.loadTexture = function(names, ext){
 		const manager = new THREE.LoadingManager(()=>resolve());
   	const loader = new THREE.TextureLoader(manager);
 		for(var i = 0; i < names.length; i++)
-			scope._textures[names[i]] = loader.load('./textures/' + names[i] + "." + ext[i]);
+			scope._textures[names[i]] = loader.load(URL + './img/' + names[i] + "." + ext[i]);
 	});
 };
 

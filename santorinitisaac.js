@@ -27,7 +27,7 @@ define([
 ], function(dojo, declare) {
 	// Player colors
 	const BLUE = "0000ff";
-	const WHITE = "ffffff";        
+	const WHITE = "ffffff";
 
 	// Zoom limits
 	const ZOOM_MIN = 0.2;
@@ -45,7 +45,7 @@ constructor: function() {
 },
 
 /*
- * Setup: 
+ * Setup:
  *  This method set up the game user interface according to current game situation specified in parameters
  *  The method is called each time the game interface is displayed to a player, ie: when the game starts and when a player refreshes the game page (F5)
  *
@@ -54,7 +54,6 @@ constructor: function() {
  */
 setup: function(gamedatas) {
 	console.info('SETUP', gamedatas);
-	console.info("santorinitisaac");
 	this.handles = [];
 
 	// TODO remove ?
@@ -89,8 +88,8 @@ setup: function(gamedatas) {
 
 				targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
 				var pieceEl = this.createPiece(thisPiece,targetEL);
-				//this.positionPiece (pieceEl, targetEL);                           
-			} 
+				//this.positionPiece (pieceEl, targetEL);
+			}
 		}
 	}
 */
@@ -105,7 +104,7 @@ setup: function(gamedatas) {
 ///////////////////////////////////////
 
 /*
- * onEnteringState: 
+ * onEnteringState:
  * 	this method is called each time we are entering into a new game state.
  *
  * params:
@@ -129,7 +128,7 @@ onEnteringState: function(stateName, args) {
 
 			this.activateworkers();
 		}
-	} 
+	}
 	// Place a worker
 	else if (stateName == 'playerPlaceWorker') {
 		// TODO possible to be false ?
@@ -145,13 +144,13 @@ onEnteringState: function(stateName, args) {
 				TODO update to new UI
 				newtarget = dojo.place(this.format_block('jstpl_movetarget', {
 					id: thisSpace.space_id,
-					worker: 0						
+					worker: 0
 					}), 'mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z );
 				this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickPlaceTarget'));
 				*/
 			}
-		}	
-	} 
+		}
+	}
 	// Select a space
 	else if (stateName == 'selectSpace') {
 		this.showPossibleSpaces();
@@ -164,7 +163,7 @@ onEnteringState: function(stateName, args) {
 
 
 /*
- * onLeavingState: 
+ * onLeavingState:
  * 	this method is called each time we are leaving a game state.
  *
  * params:
@@ -178,7 +177,7 @@ onLeavingState: function(stateName) {
 
 
 /*
- * onUpdateActionButtons: 
+ * onUpdateActionButtons:
  * 	TODO when is this called ?
  *  in this method you can manage "action buttons" that are displayed in the action status bar (ie: the HTML links in the status bar).
  */
@@ -188,7 +187,7 @@ onUpdateActionButtons: function(stateName, args) {
 	// Make sure it the player's turn
 	if (!this.isCurrentPlayerActive())
 		return;
- 
+
 	if (stateName == 'playerMove') {
 		this.addActionButton('button_reset', _('Cancel'), 'onClickCancelMove', null, false, 'gray');
 	}
@@ -202,7 +201,7 @@ onUpdateActionButtons: function(stateName, args) {
 ///////////////////////////////////////
 
 /*
- * doAction: 
+ * doAction:
  * 	TODO description ?
  * params :
  *  - action: TODO
@@ -220,7 +219,7 @@ doAction: function(action, args) {
 
 
 /*
- * delayedExec: 
+ * delayedExec:
  * 	TODO description ?
  */
 delayedExec : function(onStart, onEnd, duration, delay) {
@@ -244,7 +243,7 @@ delayedExec : function(onStart, onEnd, duration, delay) {
 
 
 /*
- * createPiece: 
+ * createPiece:
  * 	TODO description ?
  * params:
  *  - piece: TODO
@@ -253,7 +252,7 @@ delayedExec : function(onStart, onEnd, duration, delay) {
 createPiece: function(piece, location) {
 /*
 	location = location || 'sky';
-	
+
 	if (piece.type.startsWith("worker")){
 		var piecetype = "woman";
 		if ( piece.type_arg == "1" ) { piecetype = "man"; };
@@ -263,7 +262,7 @@ createPiece: function(piece, location) {
 		player: piece.location_arg
 		}), location );
 		} else {
-rand= Math.floor(Math.random() * 4);					
+rand= Math.floor(Math.random() * 4);
 angles = [0,90,180,270];
 thispieceEL = dojo.place(this.format_block('jstpl_'+piece.type, {
 id: piece.id,
@@ -309,7 +308,7 @@ this.clearPossible();
 for (var s in this.gamedatas.gamestate.args.neighbouring_spaces) {
 var thisSpace = this.gamedatas.spaces[s];
 newtarget = dojo.place(this.format_block('jstpl_buildtarget', {
-id: s												
+id: s
 }), 'mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z );
 this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickBuildTarget'));
 }
@@ -336,7 +335,7 @@ var thisWorker = this.gamedatas.gamestate.args.destinations_by_worker[worker_id]
 var thisSpace = thisWorker.space_id ;
 newtarget = dojo.place(this.format_block('jstpl_movetarget', {
 id: thisSpace,
-worker: worker_id						
+worker: worker_id
 }), 'mapspace_'+thisWorker.x+'_'+thisWorker.y+'_'+thisWorker.z );
 this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickMoveTarget'));
 }
@@ -355,7 +354,7 @@ onClickMoveTarget: function(evt) {
 /*
 dojo.stopEvent(evt);
 if( this.checkAction( 'move' ) )    // Check that this action is possible at this moment
-{           
+{
 var idParts = evt.currentTarget.className.split(/[_ ]/);
 worker_id = idParts[1];
 
@@ -369,7 +368,7 @@ x:x,
 y:y,
 z:z
 }, this, function( result ) {} );
-}            
+}
 this.clearPossible();
 this.removeActionButtons();
 */
@@ -379,7 +378,7 @@ onClickPlaceTarget: function(evt) {
 /*
 dojo.stopEvent(evt);
 if( this.checkAction( 'place' ) )    // Check that this action is possible at this moment
-{           
+{
 var idParts = evt.currentTarget.className.split(/[_ ]/);
 worker_id = idParts[1];
 
@@ -392,7 +391,7 @@ x:x,
 y:y,
 z:z
 }, this, function( result ) {} );
-}            
+}
 this.clearPossible();
 */
 },
@@ -406,7 +405,7 @@ onClickBuildTarget: function(evt) {
 /*
 dojo.stopEvent(evt);
 if( this.checkAction( 'build' ) )    // Check that this action is possible at this moment
-{           
+{
 var idParts = evt.currentTarget.id.split(/[_ ]/);
 space_id = idParts[1];
 
@@ -419,7 +418,7 @@ x:x,
 y:y,
 z:z
 }, this, function( result ) {} );
-}            
+}
 this.clearPossible();
 */
 },

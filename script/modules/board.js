@@ -5,9 +5,8 @@ import { MeshManager } 	  from './meshManager.js';
 
 
 const canvasHeight = () => window.innerHeight*0.8;
-const getRealXMouse = (x) => ( (x / (ratio*canvasHeight()) ) * 2 - 1)
-const getRealYMouse = (y) => ( (-y / (canvasHeight()) ) * 2 + 1)
 const ratio = 1.2;
+const canvasWidth = () => ratio*canvasHeight();
 
 const lvlHeights = [0, 1.24, 2.44, 3.25];
 const xCenters = [-4.15, -2.05, 0, 2.2, 4.26];
@@ -16,9 +15,11 @@ const fallAnimationDuration = 0;
 
 
 var Board = function(container, callback){
+	console.info("Creating board...");
 	this._container = container;
 	this._meshManager = new MeshManager();
 	this._meshManager.load().then(() => {
+		console.info("Meshes loaded, init the scene");
 		this.initScene();
 		this.initBoard();
 		this.animate();
@@ -83,14 +84,21 @@ Board.prototype.initScene = function(){
 	this._renderer.shadowMap.enabled = true;
 	this._container.appendChild(this._renderer.domElement);
 	window.addEventListener( 'resize', () => this._renderer.setSize( ratio*canvasHeight(), canvasHeight() ), false );
-	
+
+	const getRealMouseCoords = (px,py) => {
+		var rect = this._renderer.domElement.getBoundingClientRect()
+		return {
+			x : (px - rect.left) / canvasWidth() * 2 - 1,
+			y : -(py - rect.top) / canvasHeight() * 2 + 1
+		}
+	};
+
+
 	var hammer = new Hammer(this._renderer.domElement);
 	hammer.on('tap', (ev) => {
-		this._mouse.x = getRealXMouse(ev.center.x);
-		this._mouse.y = getRealYMouse(ev.center.y);
+		this._mouse = getRealMouseCoords(ev.center.x, ev.center.y);
 		this.raycasting(false);
 	});
-
 
 
 	// Controls
@@ -106,13 +114,12 @@ Board.prototype.initScene = function(){
 	// Raycasting
 	this._raycaster = new THREE.Raycaster();
 	this._intersected = null;
-	this._mouse = new THREE.Vector2();
+	this._mouse = { x : 0, y : 0};
 	this._mouseDown = false;
 
 	document.addEventListener( 'mousemove', (event) => {
 		event.preventDefault();
-		this._mouse.x = getRealXMouse(event.clientX);
-		this._mouse.y = getRealYMouse(event.clientY);
+		this._mouse = getRealMouseCoords(event.clientX, event.clientY);
 	}, false );
 
 	document.addEventListener( 'mousedown', (event) => this._mouseDown = true );
@@ -208,7 +215,7 @@ Board.prototype.clearClickable = function(){
 Board.prototype.raycasting = function(hover){
 	this._raycaster.setFromCamera( this._mouse, this._camera );
 	var intersects = this._raycaster.intersectObjects(this._clickable);
-	
+
 	if(intersects.length > 0) {
 		// Hover
 		if(hover){
@@ -277,7 +284,7 @@ Board.prototype.addClickable = function(name, i, j, k, callback){
 
 
 function animateVector3(vectorToAnimate, target, options){
-	options = options || {}; 
+	options = options || {};
 
 	var to = target || THREE.Vector3(),
 			easing = options.easing || createjs.Ease.cubicInOut,
