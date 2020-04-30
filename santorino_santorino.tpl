@@ -1,6 +1,7 @@
 {OVERALL_GAME_HEADER}
 <div id="playareascaler">
 	<div id="playArea">
+Coucou
 		<div id="map_container">
 			<div id="base_side1" class="baseside"></div>
 			<div id="base_side2" class="baseside"></div>

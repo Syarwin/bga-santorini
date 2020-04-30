@@ -2,13 +2,13 @@
  /**
   *------
   * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-  * santorini implementation : © Emmanuel Colin <ecolin@boardgamearena.com>
+  * santorino implementation : © Emmanuel Colin <ecolin@boardgamearena.com>
   *
   * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
   * -----
   *
-  * santorini.game.php
+  * santorino.game.php
   *
   * This is the main file for your game logic.
   *
@@ -18,7 +18,7 @@
 
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
 
-class santorini extends Table
+class santorino extends Table
 {
     public function __construct()
     {
@@ -44,7 +44,7 @@ class santorini extends Table
 
     protected function getGameName()
     {
-        return 'santorini';
+        return 'santorino';
     }
 
     /*
@@ -229,7 +229,7 @@ class santorini extends Table
 
     /*
         Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in santorini.action.php)
+        (note: each method below must match an input method in santorino.action.php)
     */
 
     public function place($x, $y, $z)
