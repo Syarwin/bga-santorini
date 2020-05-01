@@ -13,14 +13,18 @@ var	container = document.createElement( 'div');
 document.body.appendChild( container );
 window.board = new Board(container, "http://127.0.0.1/" );
 
-var click = (i,j) => { return function(){
-	board.clearClickable();
-	board.addMesh('fWorker0', i,j,0);
-}; }
 
+var click = (pos) => {
+	board.clearClickable();
+	board.addMesh('fWorker0', pos.x,pos.y,0);
+};
+
+var tPos = [];
 for(var i = 0; i < 5; i++)
 for(var j = 0; j < 5; j++)
-	board.addClickable('ring', i, j, 0, click(i,j))
+  tPos.push({x:i, y:j, z:0});
+
+board.addClickableSpaces(tPos, click);
 
 </script>
 	</body>

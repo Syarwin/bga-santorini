@@ -110,6 +110,7 @@ Board.prototype.initScene = function(){
 
 	// Raycasting
 	this._raycaster = new THREE.Raycaster();
+	this._raycaster.layers.set( 1 );
 	this._intersected = null;
 	this._mouse = { x : 0, y : 0};
 	this._mouseDown = false;
@@ -200,7 +201,16 @@ Board.prototype.render = function() {
  * Clear clickable mesh (useful after click)
  */
 Board.prototype.clearClickable = function(){
-	this._clickable.map((m) => this._scene.remove(m));
+	this._clickable.map((m) => {
+		if(m.tmp)
+			this._scene.remove(m);
+		else {
+			m.layers.disable(1);
+			m.onclick = null;
+		}
+	});
+
+	this._clickable = [];
 };
 
 
@@ -211,7 +221,7 @@ Board.prototype.clearClickable = function(){
  */
 Board.prototype.raycasting = function(hover){
 	this._raycaster.setFromCamera( this._mouse, this._camera );
-	var intersects = this._raycaster.intersectObjects(this._clickable);
+	var intersects = this._raycaster.intersectObjects(this._scene.children);
 
 	if(intersects.length > 0) {
 		// Hover
@@ -245,8 +255,8 @@ Board.prototype.raycasting = function(hover){
  * - j,k : 0...4 position on the grid
  */
 
-Board.prototype.addMesh = function(name, i, j, k){
-	var center = new THREE.Vector3(xCenters[i], lvlHeights[k], zCenters[j]);
+Board.prototype.addMesh = function(name, space){
+	var center = new THREE.Vector3(xCenters[space.x], lvlHeights[space.z], zCenters[space.y]);
 	var sky = center.clone();
 	sky.setY(14);
 
@@ -260,17 +270,18 @@ Board.prototype.addMesh = function(name, i, j, k){
 /*
  * Add a clickable mesh to a given position
  */
-Board.prototype.addClickable = function(name, i, j, k, callback){
-	var center = new THREE.Vector3(xCenters[i], lvlHeights[k], zCenters[j]);
+Board.prototype.addClickable = function(name, space, callback, tmp){
+	var center = new THREE.Vector3(xCenters[space.x], lvlHeights[space.z], zCenters[space.y]);
 
 	var mesh = this._meshManager.createMesh(name);
 	mesh.position.copy(center);
 	mesh.position.setY(center.y + 0.05);
 	mesh.rotation.set(Math.PI/2,0,0);
 	mesh.onclick = callback;
+	mesh.layers.enable(1);
+	mesh.tmp = tmp;
 	this._scene.add(mesh);
 	this._clickable.push(mesh);
-
 
 	var up = center.clone();
 	up.setY(mesh.position.y + 0.15);
@@ -278,6 +289,28 @@ Board.prototype.addClickable = function(name, i, j, k, callback){
 };
 
 
+/*
+ * Add several clickable meshes to allow space selection (for placement/moving/building)
+ */
+ Board.prototype.addClickableSpaces = function(spaces, callback){
+	 var f = (s) => {
+		 	return () => callback(s);
+	 };
+
+	 spaces.forEach((space) => {
+		 this.addClickable('ring', space, f(space), true);
+	 })
+};
+
+/*
+ * Make a mesh clickable
+ */
+Board.prototype.makeClickable = function(mesh, callback){
+	mesh.layers.enable(1);
+	mesh.tmp = false;
+	mesh.onclick = callback;
+	this._clickable.push(mesh);
+};
 
 
 function animateVector3(vectorToAnimate, target, options){
@@ -294,6 +327,6 @@ function animateVector3(vectorToAnimate, target, options){
 	});
 }
 
-//window.BOARD = new Board(document.getElementById(CONTAINER));
+
 window.Board = Board;
 export { Board };

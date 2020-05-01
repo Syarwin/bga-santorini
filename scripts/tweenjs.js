@@ -1544,8 +1544,7 @@ function (_AbstractTween) {
 
 
 var cjs = window.createjs = window.createjs || {};
-var v = cjs.v = cjs.v || {};				
+var v = cjs.v = cjs.v || {};
 v.tweenjs = "NEXT";
 
 export { Ease, Event, EventDispatcher, Ticker, Tween, AbstractTween, Timeline };
-//# sourceMappingURL=tweenjs.cjs.js.map
