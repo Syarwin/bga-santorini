@@ -1,8 +1,6 @@
 import * as THREE 				from './three.js';
 import { OBJLoader } 			from './OBJLoader.js';
 
-const URL = "https://en.1.studio.boardgamearena.com:8083/data/themereleases/current/games/santorinitisaac/999999-9999/";
-
 const Meshes = [
 /* Board Components */
 	{
@@ -80,7 +78,8 @@ const Meshes = [
 ];
 
 
-var MeshManager = function(){
+var MeshManager = function(url){
+	this._url = url || "./";
 	this._geometries = [];
 	this._textures = [];
 }
@@ -96,13 +95,16 @@ MeshManager.prototype.loadGeometry = function(names, scales){
 	if(!(names instanceof Array))
 		names = [names];
 
+	for(var i = 0; i < names.length; i++)
+		scope._geometries[names[i]] = new THREE.BufferGeometry();
+
 	return new Promise(function(resolve, reject){
 		// Create a promise with all loading requests
-		Promise.all(names.map( (n) => loader.load(URL + './geometries/' + n + '.obj') ))
+		Promise.all(names.map( (n) => loader.load(this._url + 'geometries/' + n + '.obj') ))
 		.then( (values) => {
 			// Store them (assuming only one mesh inside the obj file
 			for(var i = 0; i < names.length; i++){
-				scope._geometries[names[i]] = values[i].children[0].geometry;
+				scope._geometries[names[i]].copy(values[i].children[0].geometry);
 				scope._geometries[names[i]].scale(scales[i], scales[i], scales[i]);
 			}
 
@@ -127,7 +129,7 @@ MeshManager.prototype.loadTexture = function(names, ext){
 		const manager = new THREE.LoadingManager(()=>resolve());
   	const loader = new THREE.TextureLoader(manager);
 		for(var i = 0; i < names.length; i++)
-			scope._textures[names[i]] = loader.load(URL + './img/' + names[i] + "." + ext[i]);
+			scope._textures[names[i]] = loader.load(this._url + 'img/' + names[i] + "." + ext[i]);
 	});
 };
 

@@ -3,8 +3,8 @@
  *
  * Copyright (c) 2016 Jorik Tangelder;
  * Licensed under the MIT license */
-(function(window, document, exportName, undefined) {
-  'use strict';
+
+const exportName = 'Hammer'
 
 var VENDOR_PREFIXES = ['', 'webkit', 'Moz', 'MS', 'ms', 'o'];
 var TEST_ELEMENT = document.createElement('div');
@@ -2630,6 +2630,4 @@ assign(Hammer, {
 var freeGlobal = (typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : {})); // jshint ignore:line
 freeGlobal.Hammer = Hammer;
 
-window[exportName] = Hammer;
-
-})(window, document, 'Hammer');
+export default Hammer;

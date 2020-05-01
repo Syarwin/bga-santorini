@@ -2,11 +2,17 @@ import * as THREE 				from './three.js';
 import Stats 							from './stats.js';
 import { OrbitControls } 	from './OrbitControls.js';
 import { MeshManager } 	  from './meshManager.js';
+import Hammer 						from './hammer.js';
+import { Tween, Ease } 		from './tweenjs.js';
 
 
 const canvasHeight = () => window.innerHeight*0.8;
 const ratio = 1.2;
 const canvasWidth = () => ratio*canvasHeight();
+
+// Zoom limits
+const ZOOM_MIN = 20;
+const ZOOM_MAX = 40;
 
 const lvlHeights = [0, 1.24, 2.44, 3.25];
 const xCenters = [-4.15, -2.05, 0, 2.2, 4.26];
@@ -14,24 +20,20 @@ const zCenters = [-4.3, -2.15, 0, 2.15, 4.2];
 const fallAnimationDuration = 0;
 
 
-var Board = function(container, callback){
-	console.info("Creating board...");
+var Board = function(container){
+	console.info("Creating board");
 	this._container = container;
 	this._meshManager = new MeshManager();
-	this._meshManager.load().then(() => {
-		console.info("Meshes loaded, init the scene");
-		this.initScene();
-		this.initBoard();
-		this.animate();
-		callback();
-	});
+	this._meshManager.load().then( () => console.info("Meshes loaded, rendered scene should look good") );
+	this.initScene();
+	this.initBoard();
+	this.animate();
+
+
 	this._clickable = [];
 
 
 /*
-	this.initScene();
-	this.loadGeometry(['board', 'marks'])
-		.then(this.initBoard.bind(this));
 
 	this._board = new Array();
 	for(var i = 0; i < 4; i++){
@@ -42,10 +44,6 @@ var Board = function(container, callback){
 				this._board[i][j][k] = null;
 		}
 	}
-
-//	var mouse = new THREE.Vector2(), raycaster, INTERSECTED;
-//	raycaster = new THREE.Raycaster();
-//	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 */
 };
 
@@ -64,12 +62,11 @@ var Board = function(container, callback){
 Board.prototype.initScene = function(){
 	// Scene
 	this._scene = new THREE.Scene();
-	this._scene.background = new THREE.Color(0x3bbcf6);
+	this._scene.background = new THREE.Color(0x29a9e0);
 	this._scene.background.convertLinearToGamma( 2 );
 
 	// Camera
 	this._camera = new THREE.PerspectiveCamera( 35, ratio, 1, 150 );
-//	this._camera.position.set( 0, 24, 0 );
 	this._camera.position.set( 20, 14, 20 );
 	this._camera.lookAt( new THREE.Vector3( 0, 0, 0 ) );
 
@@ -104,8 +101,8 @@ Board.prototype.initScene = function(){
 	// Controls
 	var controls = new OrbitControls( this._camera, this._renderer.domElement );
 	controls.maxPolarAngle = Math.PI * 0.36;
-	controls.minDistance = 20;
-	controls.maxDistance = 40;
+	controls.minDistance = ZOOM_MIN;
+	controls.maxDistance = ZOOM_MAX;
 	controls.mouseButtons = {
 		RIGHT: THREE.MOUSE.ROTATE
 	}
@@ -287,14 +284,16 @@ function animateVector3(vectorToAnimate, target, options){
 	options = options || {};
 
 	var to = target || THREE.Vector3(),
-			easing = options.easing || createjs.Ease.cubicInOut,
+			easing = options.easing || Ease.cubicInOut,
 			duration = options.duration || 1000;
 
 	return new Promise(function(resolve, reject){
-		createjs.Tween.get(vectorToAnimate, options)
+		Tween.get(vectorToAnimate, options)
 			.to({ x: to.x, y: to.y, z: to.z, }, duration, easing)
 			.call(resolve);
 	});
 }
 
+//window.BOARD = new Board(document.getElementById(CONTAINER));
+window.Board = Board;
 export { Board };

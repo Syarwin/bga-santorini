@@ -42,5 +42,6 @@
           // Get players & players number
           $players = $this->game->loadPlayersBasicInfos();
           $players_nbr = count($players);
+
       }
   }

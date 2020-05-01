@@ -1,7 +1,7 @@
 /**
 	*------
 	* BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-	* santorinitisaac implementation : (c) Morgalad
+	* santorinitisaac implementation : (c) Morgalad & Tisaac
 	*
 	* This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 	* See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -17,7 +17,6 @@
 //# sourceURL=santorinitisaac.js
 //@ sourceURL=santorinitisaac.js
 
-
 define([
 	"dojo", "dojo/_base/declare",
 	"ebg/core/gamegui",
@@ -28,11 +27,7 @@ define([
 	// Player colors
 	const BLUE = "0000ff";
 	const WHITE = "ffffff";
-
-	// Zoom limits
-	const ZOOM_MIN = 0.2;
-	const ZOOM_MAX = 2;
-
+	
 	return declare("bgagame.santorinitisaac", ebg.core.gamegui, {
 
 /*
@@ -54,6 +49,49 @@ constructor: function() {
  */
 setup: function(gamedatas) {
 	console.info('SETUP', gamedatas);
+
+	var	container = document.getElementById('sceneContainer');
+	this.board = new Board(container);
+
+// TODO remove this
+	var scope = this;
+	var click = (i,j) => { return function(){
+		scope.board.clearClickable();
+		scope.board.addMesh('fWorker0', i,j,0);
+	}; };
+
+	for(var i = 0; i < 5; i++)
+	for(var j = 0; j < 5; j++)
+		this.board.addClickable('ring', i, j, 0, click(i,j))
+
+		// TODO remove ?
+		/*
+		for (var player_id in gamedatas.players) {
+			var player = gamedatas.players[player_id];
+			player.colorName = colorNames[player.color];
+			//dojo.place(this.format_block('jstpl_player_board', player), 'player_board_' + player_id);
+			//this.updatePlayerCounters(player);
+		}
+
+	/*
+		//TODO update with new version
+		// Setup tiles and buildings
+		if ( gamedatas.spaces !== null ) {
+			for (var s in gamedatas.spaces) {
+				var thisSpace = gamedatas.spaces[s];
+
+				if ( thisSpace.piece_id !== null ) {
+					thisPiece = gamedatas.placed_pieces[thisSpace.piece_id];
+
+					targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
+					var pieceEl = this.createPiece(thisPiece,targetEL);
+					//this.positionPiece (pieceEl, targetEL);
+				}
+			}
+		}
+*/
+
+	// TODO remove ?
 	this.handles = [];
 
 	// TODO remove ?
@@ -67,37 +105,9 @@ setup: function(gamedatas) {
 		'ffffff': 'white'
 	};
 
-
-	// TODO remove ?
-	for (var player_id in gamedatas.players) {
-		var player = gamedatas.players[player_id];
-		player.colorName = colorNames[player.color];
-		//dojo.place(this.format_block('jstpl_player_board', player), 'player_board_' + player_id);
-		//this.updatePlayerCounters(player);
-	}
-
-/*
-	//TODO update with new version
-	// Setup tiles and buildings
-	if ( gamedatas.spaces !== null ) {
-		for (var s in gamedatas.spaces) {
-			var thisSpace = gamedatas.spaces[s];
-
-			if ( thisSpace.piece_id !== null ) {
-				thisPiece = gamedatas.placed_pieces[thisSpace.piece_id];
-
-				targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
-				var pieceEl = this.createPiece(thisPiece,targetEL);
-				//this.positionPiece (pieceEl, targetEL);
-			}
-		}
-	}
-*/
-
 	// Setup game notifications
 	this.setupNotifications();
 },
-
 
 ///////////////////////////////////////
 ////////  Game & client states ////////
