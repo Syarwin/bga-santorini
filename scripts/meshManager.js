@@ -100,7 +100,7 @@ MeshManager.prototype.loadGeometry = function(names, scales){
 
 	return new Promise(function(resolve, reject){
 		// Create a promise with all loading requests
-		Promise.all(names.map( (n) => loader.load(this._url + 'geometries/' + n + '.obj') ))
+		Promise.all(names.map( (n) => loader.load(scope._url + 'geometries/' + n + '.obj') ))
 		.then( (values) => {
 			// Store them (assuming only one mesh inside the obj file
 			for(var i = 0; i < names.length; i++){
@@ -129,7 +129,7 @@ MeshManager.prototype.loadTexture = function(names, ext){
 		const manager = new THREE.LoadingManager(()=>resolve());
   	const loader = new THREE.TextureLoader(manager);
 		for(var i = 0; i < names.length; i++)
-			scope._textures[names[i]] = loader.load(this._url + 'img/' + names[i] + "." + ext[i]);
+			scope._textures[names[i]] = loader.load(scope._url + 'img/' + names[i] + "." + ext[i]);
 	});
 };
 

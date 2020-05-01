@@ -27,7 +27,7 @@ define([
 	// Player colors
 	const BLUE = "0000ff";
 	const WHITE = "ffffff";
-	
+
 	return declare("bgagame.santorinitisaac", ebg.core.gamegui, {
 
 /*
@@ -51,7 +51,7 @@ setup: function(gamedatas) {
 	console.info('SETUP', gamedatas);
 
 	var	container = document.getElementById('sceneContainer');
-	this.board = new Board(container);
+	this.board = new Board(container, URL);
 
 // TODO remove this
 	var scope = this;

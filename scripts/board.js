@@ -20,10 +20,10 @@ const zCenters = [-4.3, -2.15, 0, 2.15, 4.2];
 const fallAnimationDuration = 0;
 
 
-var Board = function(container){
+var Board = function(container, url){
 	console.info("Creating board");
 	this._container = container;
-	this._meshManager = new MeshManager();
+	this._meshManager = new MeshManager(url);
 	this._meshManager.load().then( () => console.info("Meshes loaded, rendered scene should look good") );
 	this.initScene();
 	this.initBoard();
