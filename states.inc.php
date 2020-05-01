@@ -80,10 +80,10 @@ $machinestates = array(
         'descriptionmyturn' => clienttranslate('${you} must place a worker'),
         'type' => 'activeplayer',
         'args' => 'argPlaceWorker',
-        'possibleactions' => array( 'place' ),
+        'possibleactions' => array( 'placeWorker' ),
         'transitions' => array(
             'zombiePass' => 2,
-            'placed' => 2,
+            'workerPlaced' => 2,
         ),
     ),
 

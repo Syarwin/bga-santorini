@@ -50,19 +50,9 @@ constructor: function() {
 setup: function(gamedatas) {
 	console.info('SETUP', gamedatas);
 
+	// Setup the board (3d scene using threejs)
 	var	container = document.getElementById('sceneContainer');
 	this.board = new Board(container, URL);
-
-// TODO remove this
-	var scope = this;
-	var click = (i,j) => { return function(){
-		scope.board.clearClickable();
-		scope.board.addMesh('fWorker0', i,j,0);
-	}; };
-
-	for(var i = 0; i < 5; i++)
-	for(var j = 0; j < 5; j++)
-		this.board.addClickable('ring', i, j, 0, click(i,j))
 
 		// TODO remove ?
 		/*
@@ -71,28 +61,17 @@ setup: function(gamedatas) {
 			player.colorName = colorNames[player.color];
 			//dojo.place(this.format_block('jstpl_player_board', player), 'player_board_' + player_id);
 			//this.updatePlayerCounters(player);
-		}
+		}*/
 
-	/*
-		//TODO update with new version
-		// Setup tiles and buildings
-		if ( gamedatas.spaces !== null ) {
-			for (var s in gamedatas.spaces) {
-				var thisSpace = gamedatas.spaces[s];
+	// Setup worker and buildings
+	gamedatas.placedPieces = gamedatas.placedPieces || [];
+	gamedatas.placedPieces.forEach(piece => {
+			var name = piece.type;
+			if(piece.type == "fWorker" || piece.type == "mWorker")
+				name += "0";
 
-				if ( thisSpace.piece_id !== null ) {
-					thisPiece = gamedatas.placed_pieces[thisSpace.piece_id];
-
-					targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
-					var pieceEl = this.createPiece(thisPiece,targetEL);
-					//this.positionPiece (pieceEl, targetEL);
-				}
-			}
-		}
-*/
-
-	// TODO remove ?
-	this.handles = [];
+			this.board.addMesh(name, piece);
+	});
 
 	// TODO remove ?
 	// Setup remaining tile counter
@@ -129,36 +108,23 @@ onEnteringState: function(stateName, args) {
 
 	this.clearPossible();
 
+	// Place a worker
+	if (stateName == 'playerPlaceWorker') {
+		// TODO possible to be false ?
+		if (args.args.accessibleSpaces.length == 0)
+			throw new Error("No available spaces to place worker");
+
+		this.worker = args.args.worker;
+		this.board.addClickableSpaces(args.args.accessibleSpaces, this.onClickPlaceWorker.bind(this));
+	}
 	// Move a worker
-	if(stateName == "playerMove"){
+	else if(stateName == "playerMove"){
 		// TODO possible to be false ?
 		if (Object.keys(args.args.destinations_by_worker).length >= 1) {
 			// TODO remove ?
 			//this.destinations_by_worker = args.args.destinations_by_worker;
 
 			this.activateworkers();
-		}
-	}
-	// Place a worker
-	else if (stateName == 'playerPlaceWorker') {
-		// TODO possible to be false ?
-		if (Object.keys(args.args.accessible_spaces).length >= 1) {
-			// TODO remove ?
-			//this.destinations_by_worker = args.args.destinations_by_worker;
-
-			// TODO difference between gamedatas.gamestate.args and args ?
-			for (var s in this.gamedatas.gamestate.args.accessible_spaces) {
-				var thisSpace = this.gamedatas.gamestate.args.accessible_spaces[s];
-
-				/*
-				TODO update to new UI
-				newtarget = dojo.place(this.format_block('jstpl_movetarget', {
-					id: thisSpace.space_id,
-					worker: 0
-					}), 'mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z );
-				this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickPlaceTarget'));
-				*/
-			}
 		}
 	}
 	// Select a space
@@ -287,16 +253,9 @@ return thispieceEL;
 
 
 clearPossible: function() {
-	// TODO
-/*
 	this.removeActionButtons();
-	//this.onUpdateActionButtons(this.gamedatas.gamestate.name, this.gamedatas.gamestate.args);
-	dojo.query('.movetarget').forEach(dojo.destroy);
-	dojo.query('.buildtarget').forEach(dojo.destroy);
-	dojo.forEach(this.handles, dojo.disconnect)
-	dojo.query(".activeworker").removeClass("activeworker");
-	this.handles = [];
-*/
+	//this.onUpdateActionButtons(this.gamedatas.gamestate.name, this.gamedatas.gamestate.args); TODO remove ?
+	this.board.clearClickable();
 },
 
 activateworkers: function() {
@@ -384,26 +343,14 @@ this.removeActionButtons();
 */
 },
 
-onClickPlaceTarget: function(evt) {
-/*
-dojo.stopEvent(evt);
-if( this.checkAction( 'place' ) )    // Check that this action is possible at this moment
-{
-var idParts = evt.currentTarget.className.split(/[_ ]/);
-worker_id = idParts[1];
+onClickPlaceWorker: function(space) {
+	// Check that this action is possible at this moment
+	if(! this.checkAction( 'placeWorker' ) )
+		return false;
 
-var coords = evt.currentTarget.parentElement.id.split('_');
-x = coords[1];
-y = coords[2];
-z = coords[3];
-this.ajaxcall( "/santorinitisaac/santorinitisaac/place.html", {
-x:x,
-y:y,
-z:z
-}, this, function( result ) {} );
-}
-this.clearPossible();
-*/
+	space.workerId = this.worker.id;
+	this.ajaxcall( "/santorinitisaac/santorinitisaac/placeWorker.html", space, this, (res) => {} );
+	this.clearPossible();
 },
 
 

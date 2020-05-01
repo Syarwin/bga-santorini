@@ -14,7 +14,6 @@
  */
 
 @import url(../../../css/csslayer.css);
-/** Remaining tile counter **/
 
 #playArea {
   /* margin: 15px; */
@@ -27,6 +26,7 @@
 }
 
 
+/** Remaining tile counter **/
 #count_remain {
   position: absolute;
   right: 3px;
@@ -41,4 +41,3 @@
   font: bold 25px/52px "Roboto", Arial, sans-serif;
   text-shadow: 1px 1px 10px rgba(0, 0, 0, 0.8);
 }
-

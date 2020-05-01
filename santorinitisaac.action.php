@@ -36,13 +36,14 @@ class action_santorinitisaac extends APP_GameAction
         }
     }
 
-    public function place()
+    public function placeWorker()
     {
         self::setAjaxMode();
+        $workerId = (int) self::getArg('workerId', AT_int, true);
         $x = (int) self::getArg('x', AT_int, true);
         $y = (int) self::getArg('y', AT_int, true);
         $z = (int) self::getArg('z', AT_posint, true);
-        $this->game->place($x, $y, $z);
+        $this->game->placeWorker($workerId, $x, $y, $z);
         self::ajaxResponse();
     }
 
@@ -66,5 +67,5 @@ class action_santorinitisaac extends APP_GameAction
         $this->game->build($x, $y, $z);
         self::ajaxResponse();
     }
-    
+
 }
