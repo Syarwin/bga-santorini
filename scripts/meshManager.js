@@ -67,14 +67,6 @@ const Meshes = [
 		g:'mWorker',
 		s:0.9
 	},
-
-/* Interactive meshes */
-	{
-		n:'ring',
-		g:new THREE.PlaneBufferGeometry( 2, 2 ),
-		t:'ring',
-		tExt:'png',
-	}
 ];
 
 
@@ -182,7 +174,13 @@ MeshManager.prototype.createMesh = function(name){
 		var t = this._textures[typeof m.t == "string" ? m.t : m.n];
 		var g = this._geometries[typeof m.g == "string"? m.g : m.n];
 
-		var material = new THREE.MeshBasicMaterial({ map : t, color:0xDDDDDD, transparent: m.tExt == "png" ? true : false, side: THREE.DoubleSide  });
+		var material = new THREE.MeshPhongMaterial({
+			alphaMap: m.a? new THREE.TextureLoader().load(this._url + 'img/'+m.a) : null,
+			map : m.c? null : t,
+			color: m.c || 0xDDDDDD,
+			transparent: (m.tExt == "png" || m.a) ? true : false,
+			side: THREE.DoubleSide
+		});
 		var mesh = new THREE.Mesh(g, material);
 		return mesh;
 		}

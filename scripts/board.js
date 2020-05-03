@@ -14,14 +14,20 @@ const canvasWidth = () => ratio*canvasHeight();
 const ZOOM_MIN = 20;
 const ZOOM_MAX = 40;
 
+// Fall animation
+const fallAnimation = {
+	sky : 14,
+	duration : 2000
+};
+
 const lvlHeights = [0, 1.24, 2.44, 3.25];
-const xCenters = [-4.15, -2.05, 0, 2.2, 4.26];
-const zCenters = [-4.3, -2.15, 0, 2.15, 4.2];
-const fallAnimationDuration = 0;
+const xCenters = [-4.2, -2.12, -0.04, 2.12, 4.2];
+const zCenters = [-4.2, -2.12, 0, 2.13, 4.15];
 
 
 var Board = function(container, url){
 	console.info("Creating board");
+	this._url = url;
 	this._container = container;
 	this._meshManager = new MeshManager(url);
 	this._meshManager.load().then( () => console.info("Meshes loaded, rendered scene should look good") );
@@ -30,21 +36,21 @@ var Board = function(container, url){
 	this.animate();
 
 
-	this._clickable = [];
-
-
-/*
-
 	this._board = new Array();
-	for(var i = 0; i < 4; i++){
+	for(var i = 0; i < 5; i++){
 		this._board[i] = new Array();
 		for(var j = 0; j < 5; j++){
 			this._board[i][j] = new Array();
-			for(var k = 0; k < 5; k++)
-				this._board[i][j][k] = null;
+			for(var k = 0; k < 4; k++)
+				this._board[i][j][k] = {
+					piece: null,
+					planeHover:null,
+					onclick: null,
+				};
 		}
 	}
-*/
+	this._ids = [];
+	this._clickable = [];
 };
 
 
@@ -71,7 +77,7 @@ Board.prototype.initScene = function(){
 	this._camera.lookAt( new THREE.Vector3( 0, 0, 0 ) );
 
 	// Lights
-//	this._scene.add( new THREE.HemisphereLight( 0xFFFFFF, 0xEEEEEE, 1 ) );
+	this._scene.add( new THREE.HemisphereLight( 0xFFFFFF, 0xFFFFFF, 1 ) );
 
 	// Renderer
 	this._renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -110,8 +116,7 @@ Board.prototype.initScene = function(){
 
 	// Raycasting
 	this._raycaster = new THREE.Raycaster();
-	this._raycaster.layers.set( 1 );
-	this._intersected = null;
+	this._hoveringSpace = null;
 	this._mouse = { x : 0, y : 0};
 	this._mouseDown = false;
 
@@ -159,15 +164,6 @@ Board.prototype.initBoard = function(){
 
 	var board = this._meshManager.createMesh('board');
 	this._scene.add(board);
-
-/*
-	var outerWall1 = this._meshManager.createMesh('outerWall1');
-	this._scene.add(outerWall1);
-
-	var innerWall = this._meshManager.createMesh('innerWall');
-	this._scene.add(innerWall);
-*/
-
 };
 
 
@@ -175,7 +171,7 @@ Board.prototype.initBoard = function(){
 /*
  * Infinite loop for rendering
  */
-var animate = true;
+var animate = true; // Useful to turn off the animation
 Board.prototype.animate = function(){
 	if(animate)
 		requestAnimationFrame(this.animate.bind(this));
@@ -188,30 +184,42 @@ Board.prototype.animate = function(){
  * Render the scene
  */
 Board.prototype.render = function() {
-	if(!this._mouseDown){
+	if(!this._mouseDown)
 		this.raycasting(true);
-	}
 
-	// Render
 	this._renderer.render( this._scene, this._camera );
 }
 
 
 /*
- * Clear clickable mesh (useful after click)
+ * Add a piece to a given position
+ * - str name : name of the mesh
+ * - mixed space : contains the location
+ * - optionnal int id : useful to access the mesh later
  */
-Board.prototype.clearClickable = function(){
-	this._clickable.map((m) => {
-		if(m.tmp)
-			this._scene.remove(m);
-		else {
-			m.layers.disable(1);
-			m.onclick = null;
-		}
-	});
 
-	this._clickable = [];
+Board.prototype.addPiece = function(piece){
+	var center = new THREE.Vector3(xCenters[piece.x], lvlHeights[piece.z], zCenters[piece.y]);
+	var sky = center.clone();
+	sky.setY(fallAnimation.sky);
+
+	var mesh = this._meshManager.createMesh(piece.name);
+	mesh.name = piece.name;
+	mesh.space = { x : piece.x, y : piece.y, z : piece.z };
+	mesh.position.copy(sky);
+	this._scene.add(mesh);
+	this._ids[piece.id] = mesh;
+	this._board[piece.x][piece.y][piece.z].piece = mesh;
+
+	return new Promise(function(resolve, reject){
+		Tween.get(mesh.position)
+			.to(center, fallAnimation.duration,  Ease.cubicInOut)
+			.call(resolve);
+	});
 };
+
+
+
 
 
 /*
@@ -221,111 +229,110 @@ Board.prototype.clearClickable = function(){
  */
 Board.prototype.raycasting = function(hover){
 	this._raycaster.setFromCamera( this._mouse, this._camera );
-	var intersects = this._raycaster.intersectObjects(this._scene.children);
+	var intersects = this._raycaster.intersectObjects(this._clickable);
 
-	if(intersects.length > 0) {
-		// Hover
-		if(hover){
-			document.body.style.cursor = "pointer";
-			if(this._intersected != intersects[0].object ) {
-				if(this._intersected != null) this._intersected.material.color.setHex(this._intersected.currentHex);
+	// Try to find the corresponding space (x,y,z)
+	var space = (intersects.length > 0 && intersects[0].object.space)? intersects[0].object.space : null;
+	// Clear previous hovering if needed
+	this.clearHovering(space);
 
-				this._intersected = intersects[0].object;
-				this._intersected.currentHex = this._intersected.material.color.getHex();
-				this._intersected.material.color.setHex(0x000000);
-			}
-		}
-		// Click
-		else {
-			if(this._intersected != null) this._intersected.material.color.setHex(this._intersected.currentHex);
-			intersects[0].object.onclick();
-		}
-	} else {
-		if(this._intersected) this._intersected.material.color.setHex( this._intersected.currentHex );
-		document.body.style.cursor = "default";
-		this._intersected = null;
+	if(space === null)
+		return;
+
+	if(hover){
+		this._hoveringSpace = space;
+		var cell = this._board[space.x][space.y][space.z];
+		cell.planeHover.children[0].material.color.setHex(0xFF0000);
+		if(cell.piece != null)
+			cell.piece.material.emissive.setHex(0xFF0000);
+		document.body.style.cursor = "pointer";
+	}
+	else {
+		// Enforce clearing of hovering
+		this.clearHovering();
+		this._board[space.x][space.y][space.z].onclick();
 	}
 };
 
-
-
 /*
- * Add a mesh to a given position
- * - i : 0...3 corresponding level
- * - j,k : 0...4 position on the grid
+ * Clear hovering effect
+ *  - optional argument space : no clearing if new space to hover is the same
  */
+Board.prototype.clearHovering = function(space){
+	if(this._hoveringSpace === null || space == this._hoveringSpace)
+		return;
 
-Board.prototype.addMesh = function(name, space){
-	var center = new THREE.Vector3(xCenters[space.x], lvlHeights[space.z], zCenters[space.y]);
-	var sky = center.clone();
-	sky.setY(14);
-
-	var mesh = this._meshManager.createMesh(name);
-	mesh.position.copy(sky);
-	this._scene.add(mesh);
-	return animateVector3(mesh.position, center, { duration: fallAnimationDuration });
-};
-
-
-/*
- * Add a clickable mesh to a given position
- */
-Board.prototype.addClickable = function(name, space, callback, tmp){
-	var center = new THREE.Vector3(xCenters[space.x], lvlHeights[space.z], zCenters[space.y]);
-
-	var mesh = this._meshManager.createMesh(name);
-	mesh.position.copy(center);
-	mesh.position.setY(center.y + 0.05);
-	mesh.rotation.set(Math.PI/2,0,0);
-	mesh.onclick = callback;
-	mesh.layers.enable(1);
-	mesh.tmp = tmp;
-	this._scene.add(mesh);
-	this._clickable.push(mesh);
-
-	var up = center.clone();
-	up.setY(mesh.position.y + 0.15);
-	animateVector3(mesh.position, up, { duration: 700, loop:-1 });
-};
-
-
-/*
- * Add several clickable meshes to allow space selection (for placement/moving/building)
- */
- Board.prototype.addClickableSpaces = function(spaces, callback){
-	 var f = (s) => {
-		 	return () => callback(s);
-	 };
-
-	 spaces.forEach((space) => {
-		 this.addClickable('ring', space, f(space), true);
-	 })
-};
-
-/*
- * Make a mesh clickable
- */
-Board.prototype.makeClickable = function(mesh, callback){
-	mesh.layers.enable(1);
-	mesh.tmp = false;
-	mesh.onclick = callback;
-	this._clickable.push(mesh);
-};
-
-
-function animateVector3(vectorToAnimate, target, options){
-	options = options || {};
-
-	var to = target || THREE.Vector3(),
-			easing = options.easing || Ease.cubicInOut,
-			duration = options.duration || 1000;
-
-	return new Promise(function(resolve, reject){
-		Tween.get(vectorToAnimate, options)
-			.to({ x: to.x, y: to.y, z: to.z, }, duration, easing)
-			.call(resolve);
-	});
+	var cell = this._board[this._hoveringSpace.x][this._hoveringSpace.y][this._hoveringSpace.z];
+	cell.planeHover.children[0].material.color.setHex(0xFFFFFF);
+	if(cell.piece != null)
+		cell.piece.material.emissive.setHex(0x000000);
+	document.body.style.cursor = "default";
+	this._hoveringSpace = null;
 }
+
+/*
+ * Clear clickable mesh (useful after click)
+ */
+Board.prototype.clearClickable = function(){
+	this._clickable.map((m) => {
+		var cell = this._board[m.space.x][m.space.y][m.space.z];
+
+		if(cell.planeHover !== null)
+			this._scene.remove(cell.planeHover)
+
+		cell.onclick = null;
+	});
+
+	this._clickable = [];
+};
+
+
+/*
+ * Make several spaces/pieces clickable to allow space selection (for placement/moving/building)
+ */
+Board.prototype.makeClickable = function(objects, callback){
+	objects.forEach(o => {
+		// Store the callback into the board
+		this._board[o.x][o.y][o.z].onclick = () => callback(o);
+
+		// Add some interactive meshes to this space
+		var center = new THREE.Vector3(xCenters[o.x], lvlHeights[o.z] + 0.01, zCenters[o.y]);
+
+		// Transparent square to make the whole space interactive
+		var mesh = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(2,2).rotateX(-Math.PI/2),
+			new THREE.MeshPhongMaterial({	opacity:0, transparent: true })
+		);
+		mesh.position.copy(center);
+		mesh.space = { x:o.x, y:o.y, z:o.z };
+		this._scene.add(mesh);
+		this._clickable.push(mesh);
+		this._board[o.x][o.y][o.z].planeHover = mesh;
+
+		// Ring animation
+		var ring = new THREE.Mesh(
+			new THREE.CircleGeometry( 0.53, 32 ).rotateX(-Math.PI/2),
+			new THREE.MeshPhongMaterial({
+//					alphaMap: new THREE.TextureLoader().load(this._url + "img/aRing.jpg"),
+					color: 0xFFFFFF,
+					opacity:0.7,
+					transparent: true,
+			})
+		);
+		ring.position.set(0, 0.05, 0);
+		ring.space = mesh.space;
+		this._clickable.push(ring);
+		mesh.add(ring);
+		Tween.get(ring.scale, {	loop:-1, bounce:true }).to({ x: 1.3, z: 1.3, }, 700, Ease.cubicInOut);
+
+		// If there a piece at this location, make it interactive
+		var piece = this._board[o.x][o.y][o.z].piece;
+		if(piece !== null){
+			piece.space = mesh.space;
+			this._clickable.push(piece);
+		}
+	})
+};
 
 
 window.Board = Board;

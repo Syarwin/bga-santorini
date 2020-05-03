@@ -6,17 +6,23 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	</head>
 	<body>
+    <div id="container"></div>
+    <div id="sliderX"></div>
+    <div id="sliderY"></div>
+    <div id="log"></div>
 <script type="module">
 import { Board } from '../scripts/board.js';
 
-var	container = document.createElement( 'div');
-document.body.appendChild( container );
+var	container = document.getElementById("container");
 window.board = new Board(container, "http://127.0.0.1/" );
-
 
 var click = (pos) => {
 	board.clearClickable();
-	board.addMesh('fWorker0', pos.x,pos.y,0);
+
+  pos.id = 1;
+  pos.name = "fWorker0"
+	board.addPiece(pos);
+  board.makeClickable([pos], () => console.log("test") );
 };
 
 var tPos = [];
@@ -24,7 +30,7 @@ for(var i = 0; i < 5; i++)
 for(var j = 0; j < 5; j++)
   tPos.push({x:i, y:j, z:0});
 
-board.addClickableSpaces(tPos, click);
+board.makeClickable(tPos, click);
 
 </script>
 	</body>
