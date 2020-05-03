@@ -153,9 +153,20 @@ class santorinitisaac extends Table
     return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'deck'");
   }
 
+
   public function getAvailableWorkers($pId = -1)
   {
     return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'desk' AND (type = 'fWorker' OR type = 'mWorker')".($pId == -1? "" : "AND player_id = '$pId'") );
+  }
+
+  public function getWorkers($pId = -1)
+  {
+    return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'board' AND (type = 'fWorker' OR type = 'mWorker')".($pId == -1? "" : "AND player_id = '$pId'") );
+  }
+
+  public function getPiece($id)
+  {
+    return self::getNonEmptyObjectFromDB("SELECT * FROM piece WHERE id = '$id'");
   }
 
 
@@ -179,58 +190,62 @@ class santorinitisaac extends Table
   }
 
 
-  public function getAccessibleSpaces()
-  {
-    $board = self::getBoard();
+/*
+ * getAccessibleSpaces:
+ *   return the list of all accessible spaces for either placing a worker, moving or building
+ */
+public function getAccessibleSpaces()
+{
+  $board = self::getBoard();
 
-    $accessible = [];
-    for($x = 0; $x < 5; $x++)
-    for($y = 0; $y < 5; $y++){
-      $z = 0;
-      $blocked = false; // If we see a worker or a dome TODO, the space is not accessible
-      // Find next free space above ground
-      for( ; $z < 4 && !$blocked && array_key_exists($z, $board[$x][$y]); $z++){
-        $p = $board[$x][$y][$z];
-        $blocked = ($p['type'] == 'fWorker' || $p['type'] == 'mWorker');
-      }
-
-      if(!$blocked && $z < 4)
-        $accessible[] = [
-          'x' => $x,
-          'y' => $y,
-          'z' => $z,
-        ];
+  $accessible = [];
+  for($x = 0; $x < 5; $x++)
+  for($y = 0; $y < 5; $y++){
+    $z = 0;
+    $blocked = false; // If we see a worker or a dome TODO, the space is not accessible
+    // Find next free space above ground
+    for( ; $z < 4 && !$blocked && array_key_exists($z, $board[$x][$y]); $z++){
+      $p = $board[$x][$y][$z];
+      $blocked = ($p['type'] == 'fWorker' || $p['type'] == 'mWorker');
     }
 
-    return $accessible;
+    if(!$blocked && $z < 4)
+      $accessible[] = [
+        'x' => $x,
+        'y' => $y,
+        'z' => $z,
+      ];
   }
 
-public function getNeighbouringSpaces($worker_id, $formoving=false)
+  return $accessible;
+}
+
+
+/*
+ * getNeighbouringSpaces:
+ *   return the list of all accessible neighbouring spaces for either moving a worker or building
+ * params:
+ *  - mixed $piece : contains all the informations (type, location, player_id) about the piece we use to move/build
+ *  - string $action : specifies what kind of action we want to do with this piece (move/build)
+ */
+public function getNeighbouringSpaces($piece, $action)
 {
-$worker_space = self::getNonEmptyObjectFromDb("SELECT space_id, x, y, z, piece_id FROM board WHERE piece_id = '$worker_id'");
-$x = $worker_space['x'];
-$y = $worker_space['y'];
-$z = $worker_space['z'];
+  // Starting from all accessible spaces, and filtering out those too far or too high (for moving only)
+  $neighbouring = array_filter( self::getAccessibleSpaces(), function($space) use ($piece, $action){
+    $ok = true;
 
-//throw new BgaUserException(print_r($worker_id, true));
-//throw new BgaUserException(print_r($formoving, true));
+    // Neighbouring : can't be same place, and should be planar coordinate distant
+    $ok = $ok && !($piece['x'] == $space['x'] && $piece['y'] == $space['y']);
+    $ok = $ok && abs($piece['x'] - $space['x']) <= 1 && abs($piece['y'] - $space['y']) <= 1;
 
-$accessible = self::getAccessibleSpaces();
+    // For moving, the new height can't be more than +1
+    if($action == 'moving')
+      $ok = $ok && $space['z'] <= $piece['z'] + 1;
 
-$neighbouring = array();
-foreach( $accessible as $space_id => $space ) {
-// Neighbouring = 1 planar coordinate distant / height for moving is only one step when going upwards
-if (($x != $space['x'] || $y != $space['y'])
-  && abs($x - $space['x']) <= 1
-  && abs($y - $space['y']) <= 1
-  && (!$formoving || $space['z'] - $z <= 1)) {
-$neighbouring[$space_id] = $space;
-}
-}
+    return $ok;
+  });
 
-//throw new BgaUserException(print_r($neighbouring, true));
-
-return $neighbouring;
+  return array_values($neighbouring);
 }
 
 
@@ -257,7 +272,7 @@ public function placeWorker($workerId, $x, $y, $z)
     throw new BgaVisibleSystemException( 'No more workers to place' );
 
   // Make sure the space is free
-  $spaceContent = self::getObjectListFromDb( "SELECT * FROM piece WHERE x = '$x' AND y = '$y' AND z = '$z'" );
+  $spaceContent = self::getObjectListFromDb( "SELECT * FROM piece WHERE x = '$x' AND y = '$y' AND z = '$z' AND location ='board'" );
   if (count($spaceContent) > 0)
     throw new BgaUserException( _("This space is not free") );
 
@@ -270,111 +285,111 @@ public function placeWorker($workerId, $x, $y, $z)
   self::DbQuery("UPDATE piece SET location = 'board', x = '$x', y = '$y', z = '$z' WHERE id = '$workerId'");
 
   // Notify
+  $piece = self::getObjectFromDB("SELECT * FROM piece WHERE id = '$workerId'");
   $args = [
     'i18n' => [],
-    'playerId' => $pId,
+    'piece' => $piece,
     'playerName' => self::getActivePlayerName(),
-    'pieceId' => $workerId,
-    'x' => $x,
-    'y' => $y,
-    'z' => $z
   ];
-  self::notifyAllPlayers('workerPlaced', clienttranslate('${player_name} places a worker'), $args);
+  self::notifyAllPlayers('workerPlaced', clienttranslate('${playerName} places a worker'), $args);
 
   $this->gamestate->nextState('workerPlaced');
 }
 
 
 /*
-public function move($worker_id, $x, $y, $z)
+ * moveWorker: move a worker to a new location on the board
+ *  - int $id : the piece id we want to move
+ *  - int $x,$y,$z : the new location on the board
+ */
+public function moveWorker($wId, $x, $y, $z)
 {
-self::checkAction('move');
+  self::checkAction('moveWorker');
 
-$player_id = self::getActivePlayerId();
+  // Get information about the piece
+  $worker = $this->getPiece($wId);
 
-// Get workers for the active player
-$workers = $this->pieces->getCardsInLocation('board', $player_id);
+  // Check if it's belong to active player
+  if ($worker['player_id'] != self::getActivePlayerId())
+    throw new BgaUserException( _("This worker is not yours") );
 
-if (!in_array($worker_id, array_keys($workers))) {
-throw new BgaUserException( _("This worker is not yours") );
+  // Check if space is free
+  $spaceContent = self::getObjectListFromDB( "SELECT id FROM piece WHERE x = '$x' AND y = '$y' AND z = '$z'" );
+  if (count($spaceContent) > 0)
+    throw new BgaUserException( _("This space is not free") );
+
+  // Check if worker can move to this space
+  $neighbouring = self::getNeighbouringSpaces($worker, 'move');
+  $space = [  'x' => $x, 'y' => $y, 'z' => $z ];
+  if (!in_array($space, $neighbouring))
+    throw new BgaUserException( _("You cannot reach this space with this worker") );
+
+  // Move worker
+  self::DbQuery( "UPDATE piece SET x = '$x', y = '$y', z = '$z' WHERE id = '$wId'" );
+
+  // Set moved worker
+  self::setGamestateValue( 'moved_worker', $wId );
+
+  // Notify
+  $args = [
+    'i18n' => [],
+    'piece' => $worker,
+    'space' => $space,
+    'playerName' => self::getActivePlayerName(),
+  ];
+  self::notifyAllPlayers('workerMoved', clienttranslate('${playerName} moves a worker'), $args);
+
+  $this->gamestate->nextState('moved');
 }
-$space_id = self::getUniqueValueFromDb( "SELECT space_id FROM board WHERE x = '$x' AND y = '$y' AND z = '$z' AND piece_id is null" );
-if ($space_id === null) {
-throw new BgaUserException( _("This space is not free") );
-}
-//throw new BgaUserException(print_r($worker_id, true));
-$neighbouring = self::getNeighbouringSpaces($worker_id, true);
-//throw new BgaUserException(print_r($neighbouring, true));
-if (!in_array($space_id, array_keys($neighbouring))) {
-throw new BgaUserException( _("You cannot reach this space with this worker") );
-}
 
-// Move worker
-self::DbQuery( "UPDATE board SET piece_id = null WHERE piece_id = '$worker_id'" );
-self::DbQuery( "UPDATE board SET piece_id = '$worker_id' WHERE x = '$x' AND y = '$y' AND z = '$z'" );
 
-// Set moved worker
-self::setGamestateValue( 'moved_worker', $worker_id );
-
-// Notify
-$args = array(
-'i18n' => array(),
-'player_id' => $player_id,
-'player_name' => self::getActivePlayerName(),
-'worker_id' => $worker_id,
-'space_id' => $space_id,
-);
-self::notifyAllPlayers('workerMoved', clienttranslate('${player_name} moves a worker'), $args);
-
-$this->gamestate->nextState('moved');
-}
+/*
+ * build: build a piece to a location on the board
+ *  - int $x,$y,$z : the location on the board
+ */
 
 public function build($x, $y, $z)
 {
-self::checkAction('build');
+  self::checkAction('build');
 
-$player_id = self::getActivePlayerId();
-$worker_id = self::getGamestateValue( 'moved_worker' );
+  $pId = self::getActivePlayerId();
+  $wId = self::getGamestateValue( 'moved_worker' );
 
-$space_id = self::getUniqueValueFromDb( "SELECT space_id FROM board WHERE x = '$x' AND y = '$y' AND z = '$z' AND piece_id is null" );
-if ($space_id === null) {
-throw new BgaUserException( _("This space is not free") );
+  // Get information about the piece
+  $worker = $this->getPiece($wId);
+
+  // Check if space is free
+  $spaceContent = self::getObjectListFromDB( "SELECT id FROM piece WHERE x = '$x' AND y = '$y' AND z = '$z'" );
+  if (count($spaceContent) > 0)
+    throw new BgaUserException( _("This space is not free") );
+
+  // Check if worker can move to this space
+  $neighbouring = self::getNeighbouringSpaces($worker, 'move');
+  $space = [  'x' => $x, 'y' => $y, 'z' => $z ];
+  if (!in_array($space, $neighbouring))
+    throw new BgaUserException( _("You cannot build on this space with this worker") );
+
+  // Build block
+  $type = 'lvl'.$z;
+  self::DbQuery("INSERT INTO piece (`player_id`, `type`, `location`, `x`, `y`, `z`) VALUES ('$pId', '$type', 'board', '$x', '$y', '$z') ");
+
+  // Reset moved worker
+  self::setGamestateValue( 'moved_worker', 0 );
+
+  // Notify
+  $piece = self::getObjectFromDB("SELECT * FROM piece WHERE id = LAST_INSERT_ID()");
+  $args = [
+    'i18n' => [],
+    'playerName' => self::getActivePlayerName(),
+    'piece' => $piece,
+    'level' => $z,
+  ];
+  $msg = ($z == 0) ? clienttranslate('${playerName} builds at ground level')
+                   : clienttranslate('${playerName} builds at level ${level}');
+  self::notifyAllPlayers('blockBuilt', $msg, $args);
+
+  $this->gamestate->nextState('built');
 }
-$neighbouring = self::getNeighbouringSpaces($worker_id);
-if (!in_array($space_id, array_keys($neighbouring))) {
-throw new BgaUserException( _("This space is not neighbouring the moved worker") );
-}
-
-$type = ($z === 0 ? 'level1' : ($z === 1 ? 'level2' : ($z === 2 ? 'level3' : 'dome')));
-$blocks = $this->pieces->getCardsOfTypeInLocation($type, null, 'deck', null);
-if (count($blocks) == 0) {
-throw new BgaUserException( _("No more blocks for building at this level") );
-}
-$block = array_shift($blocks);
-$block_id = $block['id'];
-
-self::DbQuery( "UPDATE board SET piece_id = '$block_id' WHERE x = '$x' AND y = '$y' AND z = '$z'" );
-self::DbQuery( "UPDATE piece SET card_location = 'board' WHERE card_id = $block_id " );
-
-// Reset moved worker
-self::setGamestateValue( 'moved_worker', 0 );
-
-// Notify
-$args = array(
-'i18n' => array(),
-'player_id' => $player_id,
-'player_name' => self::getActivePlayerName(),
-'block' => $block,
-'space_id' => $space_id,
-'level' => $z
-);
-$msg = clienttranslate('${player_name} builds at ground level');
-if ($z > 0) $msg = clienttranslate('${player_name} builds at level ${level}');
-self::notifyAllPlayers('blockBuilt', $msg, $args);
-
-$this->gamestate->nextState('built');
-}
-*/
 
 
 //////////////////////////////////////////////////
@@ -398,32 +413,31 @@ public function argPlaceWorker()
   ];
 }
 
-
+/*
+ * argPlayerMove: give the list of accessible unnocupied spaces for each worker
+ */
 public function argPlayerMove()
 {
+  // Return for each worker of this player the spaces he can move to
+  $workers = $this->getWorkers( self::getActivePlayerId() );
+  foreach ($workers as &$worker)
+    $worker["accessibleSpaces"] = self::getNeighbouringSpaces($worker, 'moving');
+
+  return ['workers' => $workers];
+}
+
+
 /*
-$player_id = self::getActivePlayerId();
-
-// Return for each worker of this player the spaces he can move to
-$workers = $this->pieces->getCardsInLocation('board', self::getActivePlayerId());
-$destinations = array();
-foreach ($workers as $worker_id => $worker) {
-$destinations[$worker_id] = self::getNeighbouringSpaces($worker_id, true);
-}
-*/
-//$result = array( 'destinationsByWorker' => $destinations );
-return ['destinationsByWorker' => []];
-}
-
+ * argPlayerBuild: give the list of accessible unnocupied spaces for the moved worker
+ */
 public function argPlayerBuild()
 {
-$player_id = self::getActivePlayerId();
-
-// Return available spaces neighbouring the moved player
-$worker_id = self::getGamestateValue('moved_worker');
-
-$result = array( 'neighbouring_spaces' => self::getNeighbouringSpaces($worker_id) );
-return $result;
+  // Return available spaces neighbouring the moved player
+  $worker = self::getPiece(self::getGamestateValue('moved_worker') );
+  return [
+    'worker' => $worker,
+    'accessibleSpaces' => self::getNeighbouringSpaces($worker, 'build')
+  ];
 }
 
 
@@ -438,27 +452,24 @@ return $result;
 /*
  * stNextPlayerPlaceWorker:
  *   if the active player still has no more worker to place, go to next player
- * TODO doesn't work for > 2 players
  */
 public function stNextPlayerPlaceWorker()
 {
-  $pId = self::getActivePlayerId();
+  // Get all the remeaning workers of all players
+  $workers = self::getAvailableWorkers();
+  if(count($workers) == 0){
+    $this->gamestate->nextState('done');
+    return;
+  }
+
 
   // Get unplaced workers for the active player
+  $pId = self::getActivePlayerId();
   $workers = self::getAvailableWorkers($pId);
-  if (count($workers) == 0) {
-    // No more workers to place => move on to the other player
+  if (count($workers) == 0)  // No more workers to place => move on to the other player
     $pId = $this->activeNextPlayer();
-    $workers = self::getAvailableWorkers($pId);
-  }
-
-  if (count($workers) > 0) {
-      self::giveExtraTime($pId);
-      $this->gamestate->nextState('next');
-  } else {
-    self::giveExtraTime($pId);
-    $this->gamestate->nextState('done');
-  }
+  self::giveExtraTime($pId);
+  $this->gamestate->nextState('next');
 }
 
 

@@ -47,14 +47,14 @@ class action_santorinitisaac extends APP_GameAction
         self::ajaxResponse();
     }
 
-    public function move()
+    public function moveWorker()
     {
         self::setAjaxMode();
         $x = (int) self::getArg('x', AT_int, true);
         $y = (int) self::getArg('y', AT_int, true);
         $z = (int) self::getArg('z', AT_posint, true);
-        $worker_id = (int) self::getArg('worker_id', AT_posint, true);
-        $this->game->move($worker_id, $x, $y, $z);
+        $workerId = (int) self::getArg('workerId', AT_posint, true);
+        $this->game->moveWorker($workerId, $x, $y, $z);
         self::ajaxResponse();
     }
 

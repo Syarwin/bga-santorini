@@ -31,10 +31,6 @@ var Board = function(container, url){
 	this._container = container;
 	this._meshManager = new MeshManager(url);
 	this._meshManager.load().then( () => console.info("Meshes loaded, rendered scene should look good") );
-	this.initScene();
-	this.initBoard();
-	this.animate();
-
 
 	this._board = new Array();
 	for(var i = 0; i < 5; i++){
@@ -51,6 +47,10 @@ var Board = function(container, url){
 	}
 	this._ids = [];
 	this._clickable = [];
+
+	this.initScene();
+	this.initBoard();
+	this.animate();
 };
 
 
@@ -197,7 +197,6 @@ Board.prototype.render = function() {
  * - mixed space : contains the location
  * - optionnal int id : useful to access the mesh later
  */
-
 Board.prototype.addPiece = function(piece){
 	var center = new THREE.Vector3(xCenters[piece.x], lvlHeights[piece.z], zCenters[piece.y]);
 	var sky = center.clone();
@@ -216,6 +215,34 @@ Board.prototype.addPiece = function(piece){
 			.to(center, fallAnimation.duration,  Ease.cubicInOut)
 			.call(resolve);
 	});
+};
+
+
+/*
+ * Move a piece to a new position
+ * - mixed pece : info about the piece
+ * - mixed space : contains the location
+ */
+Board.prototype.movePiece = function(piece, space){
+	// Update location on (abstract) board
+	var mesh = this._board[piece.x][piece.y][piece.z].piece;
+	this._board[piece.x][piece.y][piece.z].piece = null;
+	this._board[space.x][space.y][space.z].piece = mesh;
+	mesh.space = space;
+
+	// Animate
+	var target = new THREE.Vector3(xCenters[space.x], lvlHeights[space.z], zCenters[space.y]);
+
+	var maxZ = Math.max(piece.z, space.z);
+	var tmp1 = mesh.position.clone();
+	tmp1.setY(lvlHeights[maxZ] + 1);
+	var tmp2 = target.clone();
+	tmp2.setY(lvlHeights[maxZ] + 1);
+
+	Tween.get(mesh.position)
+		.to(tmp1, 700,  Ease.cubicInOut)
+		.to(tmp2, 600,  Ease.cubicInOut)
+		.to(target, 600,  Ease.cubicInOut)
 };
 
 

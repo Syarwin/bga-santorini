@@ -63,15 +63,8 @@ setup: function(gamedatas) {
 			//this.updatePlayerCounters(player);
 		}*/
 
-	// Setup worker and buildings
-	gamedatas.placedPieces = gamedatas.placedPieces || [];
-	gamedatas.placedPieces.forEach(piece => {
-			var name = piece.type;
-			if(piece.type == "fWorker" || piece.type == "mWorker")
-				name += "0";
-
-			this.board.addMesh(name, piece);
-	});
+	// Setup workers and buildings
+	gamedatas.placedPieces.forEach(this.createPiece.bind(this));
 
 	// TODO remove ?
 	// Setup remaining tile counter
@@ -110,30 +103,21 @@ onEnteringState: function(stateName, args) {
 
 	// Place a worker
 	if (stateName == 'playerPlaceWorker') {
-		// TODO possible to be false ?
+		// TODO possible to be true ?
 		if (args.args.accessibleSpaces.length == 0)
 			throw new Error("No available spaces to place worker");
 
 		this.worker = args.args.worker;
-		this.board.addClickableSpaces(args.args.accessibleSpaces, this.onClickPlaceWorker.bind(this));
+		this.board.makeClickable(args.args.accessibleSpaces, this.onClickPlaceWorker.bind(this));
 	}
 	// Move a worker
 	else if(stateName == "playerMove"){
-		// TODO possible to be false ?
-		if (Object.keys(args.args.destinations_by_worker).length >= 1) {
-			// TODO remove ?
-			//this.destinations_by_worker = args.args.destinations_by_worker;
-
-			this.activateworkers();
-		}
-	}
-	// Select a space
-	else if (stateName == 'selectSpace') {
-		this.showPossibleSpaces();
+		this._movableWorkers = args.args.workers.filter(worker => worker.accessibleSpaces.length > 0);
+		this.board.makeClickable(this._movableWorkers, this.onClickSelectWorker.bind(this));
 	}
 	// Build a block
 	else if (stateName == 'playerBuild') {
-		this.showPossibleBuilding();
+		this.board.makeClickable(args.args.accessibleSpaces, this.onClickBuild.bind(this));
 	}
 },
 
@@ -163,10 +147,6 @@ onUpdateActionButtons: function(stateName, args) {
 	// Make sure it the player's turn
 	if (!this.isCurrentPlayerActive())
 		return;
-
-	if (stateName == 'playerMove') {
-		this.addActionButton('button_reset', _('Cancel'), 'onClickCancelMove', null, false, 'gray');
-	}
 },
 
 
@@ -225,7 +205,12 @@ delayedExec : function(onStart, onEnd, duration, delay) {
  *  - piece: TODO
  *  - location: TODO
  */
-createPiece: function(piece, location) {
+createPiece: function(piece) {
+	piece.name = piece.type;
+	if(piece.type == "fWorker" || piece.type == "mWorker")
+		piece.name += "0";
+
+	this.board.addPiece(piece);
 /*
 	location = location || 'sky';
 
@@ -238,6 +223,8 @@ createPiece: function(piece, location) {
 		player: piece.location_arg
 		}), location );
 		} else {
+
+	//TODO : random rotation
 rand= Math.floor(Math.random() * 4);
 angles = [0,90,180,270];
 thispieceEL = dojo.place(this.format_block('jstpl_'+piece.type, {
@@ -254,94 +241,13 @@ return thispieceEL;
 
 clearPossible: function() {
 	this.removeActionButtons();
-	//this.onUpdateActionButtons(this.gamedatas.gamestate.name, this.gamedatas.gamestate.args); TODO remove ?
+	this._selectedWorker = null;
 	this.board.clearClickable();
 },
 
-activateworkers: function() {
-	// TODO
-/*
-	this.clearPossible();
-	for (var w in this.gamedatas.gamestate.args.destinations_by_worker) {
-	var thisWorker = this.gamedatas.gamestate.args.destinations_by_worker[w];
-	dojo.addClass($("worker_"+w), "activeworker");
-	this.handles.push( dojo.connect($("worker_"+w),'onclick', this, 'onClickPossibleworker'));
-	}
-*/
-},
-
-showPossibleBuilding: function() {
-//TODO
-/*
-this.clearPossible();
-for (var s in this.gamedatas.gamestate.args.neighbouring_spaces) {
-var thisSpace = this.gamedatas.spaces[s];
-newtarget = dojo.place(this.format_block('jstpl_buildtarget', {
-id: s
-}), 'mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z );
-this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickBuildTarget'));
-}
-*/
-},
-
-///////////////////////////////////////////////////
-//// Player's action
-
-/////
-// Tile actions
-/////
-
-onClickPossibleworker: function(evt, worker_id) {
-/*
-this.clearPossible();
-if (worker_id == null) {
-dojo.stopEvent(evt);
-var idParts = evt.currentTarget.id.split('_');
-worker_id = idParts[1];
-}
-for (var s in this.gamedatas.gamestate.args.destinations_by_worker[worker_id]) {
-var thisWorker = this.gamedatas.gamestate.args.destinations_by_worker[worker_id][s];
-var thisSpace = thisWorker.space_id ;
-newtarget = dojo.place(this.format_block('jstpl_movetarget', {
-id: thisSpace,
-worker: worker_id
-}), 'mapspace_'+thisWorker.x+'_'+thisWorker.y+'_'+thisWorker.z );
-this.handles.push( dojo.connect(newtarget,'onclick', this, 'onClickMoveTarget'));
-}
-
-this.onUpdateActionButtons(this.gamedatas.gamestate.name, this.gamedatas.gamestate.args);
-*/
-},
-
-onClickCancelMove: function(evt) {
-	dojo.stopEvent(evt);
-	this.clearPossible();
-	this.activateworkers();
-},
-
-onClickMoveTarget: function(evt) {
-/*
-dojo.stopEvent(evt);
-if( this.checkAction( 'move' ) )    // Check that this action is possible at this moment
-{
-var idParts = evt.currentTarget.className.split(/[_ ]/);
-worker_id = idParts[1];
-
-var coords = evt.currentTarget.parentElement.id.split('_');
-x = coords[1];
-y = coords[2];
-z = coords[3];
-this.ajaxcall( "/santorinitisaac/santorinitisaac/move.html", {
-worker_id:worker_id,
-x:x,
-y:y,
-z:z
-}, this, function( result ) {} );
-}
-this.clearPossible();
-this.removeActionButtons();
-*/
-},
+//////////////////////////////////////////////////
+//////////////   Player's action   ///////////////
+//////////////////////////////////////////////////
 
 onClickPlaceWorker: function(space) {
 	// Check that this action is possible at this moment
@@ -349,85 +255,104 @@ onClickPlaceWorker: function(space) {
 		return false;
 
 	space.workerId = this.worker.id;
-	this.ajaxcall( "/santorinitisaac/santorinitisaac/placeWorker.html", space, this, (res) => {} );
-	this.clearPossible();
+	this.ajaxcall( "/santorinitisaac/santorinitisaac/placeWorker.html", space, this, res => {} );
 },
+
+/////
+// Tile actions
+/////
+
+onClickSelectWorker: function(worker) {
+	this.clearPossible();
+	this._selectedWorker = worker;
+	console.log(this._selectedWorker);
+	this.board.makeClickable(worker.accessibleSpaces, this.onClickMoveWorker.bind(this));
+	this.addActionButton('buttonReset', _('Cancel'), 'onClickCancelSelect', null, false, 'gray');
+},
+
+onClickCancelSelect: function(evt) {
+	dojo.stopEvent(evt);
+	this.clearPossible();
+	this.board.makeClickable(this._movableWorkers, this.onClickSelectWorker.bind(this));
+},
+
+onClickMoveWorker: function(space) {
+	if( !this.checkAction( 'moveWorker' ) )
+		return;
+
+	this.ajaxcall( "/santorinitisaac/santorinitisaac/moveWorker.html", {
+		workerId: this._selectedWorker.id,
+		x: space.x,
+		y: space.y,
+		z: space.z
+	}, this, res => {} );
+	this.clearPossible(); // Make sur to clear after sending ajax otherwise selectedWorker will be null
+},
+
 
 
 /////
 // Building actions
 /////
 
-onClickBuildTarget: function(evt) {
-/*
-dojo.stopEvent(evt);
-if( this.checkAction( 'build' ) )    // Check that this action is possible at this moment
-{
-var idParts = evt.currentTarget.id.split(/[_ ]/);
-space_id = idParts[1];
+onClickBuild: function(space) {
+	if( !this.checkAction( 'build' ) )
+		return;
 
-var coords = evt.currentTarget.parentElement.id.split('_');
-x = coords[1];
-y = coords[2];
-z = coords[3];
-this.ajaxcall( "/santorinitisaac/santorinitisaac/build.html", {
-x:x,
-y:y,
-z:z
-}, this, function( result ) {} );
-}
-this.clearPossible();
-*/
+	this.clearPossible();
+	this.ajaxcall( "/santorinitisaac/santorinitisaac/build.html", space, this, res => {} );
 },
 
 ///////////////////////////////////////////////////
-//// Reaction to cometD notifications
-
+//////   Reaction to cometD notifications   ///////
+///////////////////////////////////////////////////
 /*
-setupNotifications:
-
-In this method, you associate each of your game notifications with your local method to handle it.
-
-Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
-your santorinitisaac.game.php file.
-
-*/
+ * setupNotifications:
+ *  In this method, you associate each of your game notifications with your local method to handle it.
+ *	Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" in the santorinitisaac.game.php file.
+ */
 setupNotifications: function() {
-	dojo.subscribe('blockBuilt', this, 'notif_building');
-	this.notifqueue.setSynchronous('blockBuilt', 2000);
 	dojo.subscribe('workerPlaced', this, 'notif_workerPlaced');
 	this.notifqueue.setSynchronous('workerPlaced', 2000);
-	dojo.subscribe('workerMoved', this, 'notif_moveworker');
+
+	dojo.subscribe('workerMoved', this, 'notif_workerMoved');
 	this.notifqueue.setSynchronous('workerMoved', 2000);
+
+	dojo.subscribe('blockBuilt', this, 'notif_blockBuilt');
+	this.notifqueue.setSynchronous('blockBuilt', 2000);
+
+
 },
 
+/*
+ * notif_workerPlaced:
+ *   called whenever a new worker is placed on the board
+ */
 notif_workerPlaced: function(n) {
-	console.log('notif_tile', n.args);
-	var player_id = this.getActivePlayerId();
-	var player = this.gamedatas.players[player_id];
-	thisPiece = this.gamedatas.available_pieces[n.args.worker_id]
-	var pieceEl = this.createPiece(thisPiece);
-	thisSpace = this.gamedatas.spaces[n.args.space_id];
-	targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
-	this.positionPiece (pieceEl, targetEL);
+	console.info('Notif: new worker placed', n.args);
+	this.createPiece(n.args.piece);
 },
 
-notif_building: function(n) {
-	console.log('notif_building', n.args);
-	var player_id = this.getActivePlayerId();
-	var player = this.gamedatas.players[player_id];
-	thisPiece = this.gamedatas.available_pieces[n.args.block.id]
-	var pieceEl = this.createPiece(thisPiece);
-	thisSpace = this.gamedatas.spaces[n.args.space_id];
-	targetEL = $('mapspace_'+thisSpace.x+'_'+thisSpace.y+'_'+thisSpace.z);
-	this.positionPiece (pieceEl, targetEL);
+
+/*
+ * notif_workerMoved:
+ *   called whenever a worker is moved on the board
+ */
+notif_workerMoved : function(n) {
+	console.info('Notif: worker moved', n.args);
+	this.board.movePiece(n.args.piece, n.args.space);
 },
 
-notif_moveworker : function(notif) {
-	thisSpace= this.gamedatas.spaces[notif.args.space_id];
-	var destination = "mapspace_"+thisSpace.x+"_"+thisSpace.y+"_"+thisSpace.z;
-	this.slideToObjectAbsolute('worker_'+notif.args.worker_id, 'sky' ,0,0, 800, 0 , dojo.hitch( this ,function(){ this.slideToObjectAbsolute('worker_'+notif.args.worker_id, destination,0,0, 800 )}));
+
+/*
+ * notif_blockBuilt:
+ *   called whenever a new block is built
+ */
+notif_blockBuilt: function(n) {
+	console.log('Notif: block built', n.args);
+	this.createPiece(n.args.piece);
 },
+
 
 });
 });
