@@ -19,17 +19,6 @@
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
 
 
-/*
-$pieces[] = array('type' => 'worker_blue', 'type_arg' => 0, 'nbr' => 1);
-$pieces[] = array('type' => 'worker_white', 'type_arg' => 0, 'nbr' => 1);
-$pieces[] = array('type' => 'worker_blue', 'type_arg' => 1, 'nbr' => 1);
-$pieces[] = array('type' => 'worker_white', 'type_arg' => 1, 'nbr' => 1);
-$pieces[] = array('type' => 'dome', 'type_arg' => 0, 'nbr' => 18);
-$pieces[] = array('type' => 'level1', 'type_arg' => 0, 'nbr' => 22);
-$pieces[] = array('type' => 'level2', 'type_arg' => 0, 'nbr' => 18);
-$pieces[] = array('type' => 'level3', 'type_arg' => 0, 'nbr' => 14);
-*/
-
 class santorinitisaac extends Table
 {
   public function __construct()
@@ -55,139 +44,146 @@ class santorinitisaac extends Table
     return 'santorinitisaac';
   }
 
-  /*
-   * setupNewGame:
-   *  This method is called only once, when a new game is launched.
-   * params:
-   *  - array $players
-   *  - mixed $players :
-   */
-  protected function setupNewGame($players, $options = array())
-  {
-    self::setGameStateInitialValue('selection_x', 0);
-    self::setGameStateInitialValue('selection_y', 0);
-    self::setGameStateInitialValue('selection_z', 0);
-    self::setGameStateInitialValue('moved_worker', 0);
+/*
+ * setupNewGame:
+ *  This method is called only once, when a new game is launched.
+ * params:
+ *  - array $players
+ *  - mixed $players :
+ */
+protected function setupNewGame($players, $options = array())
+{
+  self::setGameStateInitialValue('selection_x', 0);
+  self::setGameStateInitialValue('selection_y', 0);
+  self::setGameStateInitialValue('selection_z', 0);
+  self::setGameStateInitialValue('moved_worker', 0);
 
 
-    // Create players
-    self::DbQuery('DELETE FROM player');
-    $gameInfos = self::getGameinfos();
-    $defaultColors = $gameInfos['player_colors'];
-    $sql = 'INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ';
-    $values = array();
-    foreach ($players as $pId => $player) {
-      $color = array_shift($defaultColors);
-      $values[] = "('".$pId."','$color','".$player['player_canal']."','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
+  // Create players
+  self::DbQuery('DELETE FROM player');
+  $gameInfos = self::getGameinfos();
+  $defaultColors = $gameInfos['player_colors'];
+  $sql = 'INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ';
+  $values = array();
+  $no = 1;
+  foreach ($players as $pId => $player) {
+    $color = array_shift($defaultColors);
+    $values[] = "('".$pId."','$color','".$player['player_canal']."','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
 
-      // Add the two workers to deck
-      self::DbQuery("INSERT INTO piece (`player_id`, `type`, `location`) VALUES ('$pId', 'fWorker', 'desk'), ('$pId', 'mWorker', 'desk')");
-    }
-    self::DbQuery($sql . implode($values, ','));
-
-    self::reattributeColorsBasedOnPreferences($players, $gameInfos['player_colors']);
-    self::reloadPlayersBasicInfos();
-
-    // Active first player to play
-    $this->activeNextPlayer();
+    // Add the two workers to deck
+    self::DbQuery("INSERT INTO piece (`player_id`, `type`, `type_arg`, `location`) VALUES ('$pId', 'worker', 'f$no', 'desk'), ('$pId', 'worker', 'm$no', 'desk')");
+    $no++;
   }
+  self::DbQuery($sql . implode($values, ','));
 
-  /*
-   * getAllDatas:
-   *  Gather all informations about current game situation (visible by the current player).
-   *  The method is called each time the game interface is displayed to a player, ie: when the game starts and when a player refreshes the game page (F5)
-   */
-  protected function getAllDatas()
-  {
-    // TODO to remove ?
-    $player_id = self::getCurrentPlayerId();
+  self::reattributeColorsBasedOnPreferences($players, $gameInfos['player_colors']);
+  self::reloadPlayersBasicInfos();
 
-    return [
-      'players' => $this->getPlayers(),
-//      'spaces'  => $this->getSpaces(), TODO
-      'placedPieces' => $this->getPlacedPieces(),
-      'availablePieces' => $this->getAvailablePieces(),
-      'movedWorker' => self::getGamestateValue('moved_worker'),
-    ];
+  // Active first player to play
+  $this->activeNextPlayer();
 }
 
-  /*
-   * getGameProgression:
-   *  Compute and return the current game progression approximation
-   *  This method is called each time we are in a game state with the "updateGameProgression" property set to true
-   */
-  public function getGameProgression()
-  {
-    // TODO
-    // Number of pieces on the board / total number of pieces
-    $nbr_placed = count(self::getPlacedPieces());
-    $nbr_available = count(self::getAvailablePieces());
+/*
+ * getAllDatas:
+ *  Gather all informations about current game situation (visible by the current player).
+ *  The method is called each time the game interface is displayed to a player, ie: when the game starts and when a player refreshes the game page (F5)
+ */
+protected function getAllDatas()
+{
+  // TODO to remove ?
+  $player_id = self::getCurrentPlayerId();
 
-    return 0.3;
+  return [
+    'players' => $this->getPlayers(),
+    'placedPieces' => $this->getPlacedPieces(),
+    'availablePieces' => $this->getAvailablePieces(),
+    'movedWorker' => self::getGamestateValue('moved_worker'),
+  ];
+}
+
+/*
+ * getGameProgression:
+ *  Compute and return the current game progression approximation
+ *  This method is called each time we are in a game state with the "updateGameProgression" property set to true
+ */
+public function getGameProgression()
+{
+  // TODO
+  // Number of pieces on the board / total number of pieces
+  $nbr_placed = count(self::getPlacedPieces());
+  $nbr_available = count(self::getAvailablePieces());
+
+  return 0.3;
 //    return $nbr_placed / ($nbr_placed+$nbr_available);
-  }
+}
+
 
 
 ////////////////////////////////////////////
 //////////// Utility functions ////////////
 ///////////////////////////////////////////
 
-  public function getPlayers()
-  {
-    return self::getCollectionFromDb("SELECT player_id id, player_color color, player_name name, player_score score, player_zombie zombie, player_eliminated eliminated FROM player");
+public function getPlayers()
+{
+  return self::getCollectionFromDb("SELECT player_id id, player_color color, player_name name, player_score score, player_zombie zombie, player_eliminated eliminated FROM player");
+}
+
+public function getPlayer($player_id)
+{
+  return self::getNonEmptyObjectFromDB("SELECT player_id id, player_color color, player_name name, player_score score, player_zombie zombie, player_eliminated eliminated FROM player WHERE player_id = $player_id");
+}
+
+
+public function getPlacedPieces()
+{
+  return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'board'");
+}
+
+public function getAvailablePieces()
+{
+  return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'deck'");
+}
+
+
+public function getAvailableWorkers($pId = -1)
+{
+  return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'desk' AND type = 'worker' ".($pId == -1? "" : "AND player_id = '$pId'") );
+}
+
+public function getWorkers($pId = -1)
+{
+  return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'board' AND type = 'worker' ".($pId == -1? "" : "AND player_id = '$pId'") );
+}
+
+public function getPiece($id)
+{
+  return self::getNonEmptyObjectFromDB("SELECT * FROM piece WHERE id = '$id'");
+}
+
+
+/*
+ * getBoard:
+ *   return a 3d matrix reprensenting the board with all the placed pieces
+ */
+
+public function getBoard(){
+  // Create an empty 5*5*4 board
+  $board = [];
+  for ($x = 0; $x < 5; $x++){
+    $board[$x] = [];
+    for ($y = 0; $y < 5; $y++)
+      $board[$x][$y] = [];
   }
 
-  public function getPlayer($player_id)
-  {
-    return self::getNonEmptyObjectFromDB("SELECT player_id id, player_color color, player_name name, player_score score, player_zombie zombie, player_eliminated eliminated FROM player WHERE player_id = $player_id");
+  // Add all placed pieces
+  $pieces = self::getPlacedPieces();
+  for($i = 0; $i < count($pieces); $i++){
+    $p = $pieces[$i];
+    $board[$p['x']][$p['y']][$p['z']] = $p;
   }
 
-
-  public function getPlacedPieces()
-  {
-    return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'board'");
-  }
-
-  public function getAvailablePieces()
-  {
-    return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'deck'");
-  }
-
-
-  public function getAvailableWorkers($pId = -1)
-  {
-    return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'desk' AND (type = 'fWorker' OR type = 'mWorker')".($pId == -1? "" : "AND player_id = '$pId'") );
-  }
-
-  public function getWorkers($pId = -1)
-  {
-    return self::getObjectListFromDb("SELECT * FROM piece WHERE location = 'board' AND (type = 'fWorker' OR type = 'mWorker')".($pId == -1? "" : "AND player_id = '$pId'") );
-  }
-
-  public function getPiece($id)
-  {
-    return self::getNonEmptyObjectFromDB("SELECT * FROM piece WHERE id = '$id'");
-  }
-
-
-  public function getBoard(){
-    // Create an empty 5*5*4 board
-    $board = [];
-    for ($x = 0; $x < 5; $x++){
-      $board[$x] = [];
-      for ($y = 0; $y < 5; $y++)
-        $board[$x][$y] = [];
-    }
-
-    // Add all placed pieces
-    $pieces = self::getPlacedPieces();
-    for($i = 0; $i < count($pieces); $i++){
-      $p = $pieces[$i];
-      $board[$p['x']][$p['y']][$p['z']] = $p;
-    }
-
-    return $board;
-  }
+  return $board;
+}
 
 
 /*
@@ -202,11 +198,11 @@ public function getAccessibleSpaces()
   for($x = 0; $x < 5; $x++)
   for($y = 0; $y < 5; $y++){
     $z = 0;
-    $blocked = false; // If we see a worker or a dome TODO, the space is not accessible
+    $blocked = false; // If we see a worker or a dome, the space is not accessible
     // Find next free space above ground
     for( ; $z < 4 && !$blocked && array_key_exists($z, $board[$x][$y]); $z++){
       $p = $board[$x][$y][$z];
-      $blocked = ($p['type'] == 'fWorker' || $p['type'] == 'mWorker');
+      $blocked = ($p['type'] == 'worker' || $p['type'] == 'lvl3');
     }
 
     if(!$blocked && $z < 4)

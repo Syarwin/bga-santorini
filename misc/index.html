@@ -18,10 +18,34 @@ window.board = new Board(container, "http://127.0.0.1/" );
 
 var piece = {
   id:1,
-  name : 'fWorker0',
+  name : 'lvl0',
   x:0,
   y:0,
   z:0,
+};
+
+var piece2 = {
+  id:2,
+  name : 'lvl1',
+  x:0,
+  y:0,
+  z:1,
+};
+
+var piece3 = {
+  id:3,
+  name : 'lvl2',
+  x:0,
+  y:0,
+  z:2,
+};
+
+var piece4 = {
+  id:4,
+  name : 'lvl3',
+  x:0,
+  y:0,
+  z:3,
 };
 
 var space = {
@@ -31,8 +55,11 @@ var space = {
 };
 
 board.addPiece(piece).then(() => {
-  board.movePiece(piece, space);
+//  board.movePiece(piece, space);
 });
+board.addPiece(piece2)
+board.addPiece(piece3)
+board.addPiece(piece4)
 /*
 var click = (pos) => {
 	board.clearClickable();

@@ -67,10 +67,6 @@ setup: function(gamedatas) {
 	gamedatas.placedPieces.forEach(this.createPiece.bind(this));
 
 	// TODO remove ?
-	// Setup remaining tile counter
-	// dojo.place($('count_remain'), 'game_play_area_wrap', 'first');
-
-	// TODO remove ?
 	// Setup player boards
 	colorNames = {
 		'0000ff': 'blue',
@@ -176,7 +172,7 @@ doAction: function(action, args) {
 
 /*
  * delayedExec:
- * 	TODO description ?
+ * 	TODO description ? remove ?
  */
 delayedExec : function(onStart, onEnd, duration, delay) {
 	duration = duration || 500;
@@ -207,8 +203,8 @@ delayedExec : function(onStart, onEnd, duration, delay) {
  */
 createPiece: function(piece) {
 	piece.name = piece.type;
-	if(piece.type == "fWorker" || piece.type == "mWorker")
-		piece.name += "0";
+	if(piece.type == "worker")
+		piece.name = piece.type_arg + piece.type;
 
 	this.board.addPiece(piece);
 /*
@@ -254,6 +250,7 @@ onClickPlaceWorker: function(space) {
 	if(! this.checkAction( 'placeWorker' ) )
 		return false;
 
+	this.clearPossible();
 	space.workerId = this.worker.id;
 	this.ajaxcall( "/santorinitisaac/santorinitisaac/placeWorker.html", space, this, res => {} );
 },

@@ -200,12 +200,13 @@ Board.prototype.render = function() {
 Board.prototype.addPiece = function(piece){
 	var center = new THREE.Vector3(xCenters[piece.x], lvlHeights[piece.z], zCenters[piece.y]);
 	var sky = center.clone();
-	sky.setY(fallAnimation.sky);
+	sky.setY(center.y + fallAnimation.sky);
 
 	var mesh = this._meshManager.createMesh(piece.name);
 	mesh.name = piece.name;
 	mesh.space = { x : piece.x, y : piece.y, z : piece.z };
 	mesh.position.copy(sky);
+	mesh.rotation.set(0, Math.floor(Math.random() * 4)*Math.PI/2, 0);
 	this._scene.add(mesh);
 	this._ids[piece.id] = mesh;
 	this._board[piece.x][piece.y][piece.z].piece = mesh;
